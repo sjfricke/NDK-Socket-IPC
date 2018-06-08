@@ -4,6 +4,18 @@
 #include <android/log.h>
 #include <string.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <signal.h>
+
+#define DEFAULT_PORT 5000
+#define MSG_SIZE 512
+
 // Android log function wrappers
 static const char* kTAG = "ClientIPC";
 #define LOGI(...) \
@@ -24,8 +36,42 @@ const uint32_t color_wheel[4] = {
 	0x00000FFFF // yellow
 };
 
-void sendColor(int color) {
-	
+int mySocket; // holds ID of the socket
+struct sockaddr_in serv; // object of server to connect to
+char* hostIP = "127.0.0.1";
+
+void setupClient(void) {
+	// Create socket
+	// AF_INET refers to the Internet Domain
+	// SOCK_STREAM sets a stream to send data
+	// 0 will have the OS pick TCP for SOCK_STREAM
+	mySocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (mySocket < 0) { LOGE ("Could not create socket"); }
+
+	serv.sin_addr.s_addr = inet_addr(hostIP); // sets IP of server
+	serv.sin_family = AF_INET; // uses internet address domain
+	serv.sin_port = htons(DEFAULT_PORT); // sets PORT on server
+
+	// Connect to remote server with socket
+	int status = connect(mySocket, (struct sockaddr *)&serv , sizeof(serv));
+	if (status < 0) { LOGE("Connection error"); }
+
+	LOGE("CONNECTED!!");
+}
+
+void sendColor(uint8_t color) {
+	char message[MSG_SIZE];
+	char server_reply[MSG_SIZE];
+
+	memcpy(&message[0], &color, sizeof(uint8_t));
+
+	int status =  send(mySocket, message , MSG_SIZE, 0);
+	if (status < 0) { LOGE("Send failed\n"); }
+
+	// receive a reply from the server
+	status = recv(mySocket, server_reply, MSG_SIZE, 0);
+	if (status < 0) { LOGE("recv failed\n"); }
+	LOGI("%s", server_reply);
 }
 
 int32_t handle_input(struct android_app* app, AInputEvent* event) {
@@ -122,6 +168,8 @@ void android_main(struct android_app* app) {
 	// Used to poll the events in the main loop
 	int events;
 	android_poll_source* source;
+
+	setupClient();
 
 	// Main loop
 	do {
