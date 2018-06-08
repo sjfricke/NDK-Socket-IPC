@@ -30,6 +30,9 @@ const uint32_t color_wheel[4] = {
 	0x00000FFFF // yellow
 };
 
+// color to set when screen goes back to foreground process
+void setColorSelected(uint8_t color);
+
 static ANativeWindow* native_window;
 
 bool IsNDKReady(void);

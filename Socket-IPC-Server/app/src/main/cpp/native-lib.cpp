@@ -37,6 +37,7 @@ void* setupServer(void* na) {
 	// when daemon is closed there is a delay to make sure all TCP data is propagated
 	if (status < 0) {
 		LOGE("ERROR opening socket: %d , possible TIME_WAIT\n", status);
+		exit(-1);
 	}
 
 	// start listening, allowing a queue of up to 1 pending connection
@@ -57,8 +58,8 @@ void* setupServer(void* na) {
 			if (msgSize < 0) { LOGE("ERROR on recv"); }
 			else if (msgSize == 0) { break; } // clients dropped connection from socket
 
+			setColorSelected((uint8_t)receiveMsg[0]);
 			LOGI("Color Index: %d", (uint8_t)receiveMsg[0]);
-			setWindowColor((uint8_t)receiveMsg[0]);
 
 			// clears receive message buffer
 			memset(receiveMsg, 0, MSG_SIZE);
@@ -90,6 +91,8 @@ void android_main(struct android_app* app) {
 	// Used to poll the events in the main loop
 	int events;
 	android_poll_source* source;
+
+	setColorSelected(0); // Start with red
 
 	// Start server daemon on new thread
 	pthread_t server_thread;

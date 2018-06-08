@@ -4,6 +4,12 @@
  */
 #include "display.h"
 
+static uint8_t color_selected;
+
+void setColorSelected(uint8_t color) {
+	color_selected = color;
+}
+
 bool IsNDKReady(void) {
 	// add prep logic
 	return true;
@@ -49,7 +55,8 @@ void handle_cmd(android_app* app, int32_t cmd) {
 											 ANativeWindow_getWidth(app->window),
 											 WINDOW_FORMAT_RGBX_8888);
 
-			setWindowColor(0); // start screen red
+			LOGI("Color index to set: %d", color_selected);
+			setWindowColor(color_selected); // Set screen to color from color_wheel[]
 
 			break;
 		case APP_CMD_TERM_WINDOW:
