@@ -1,8 +1,4 @@
-#include <android_native_app_glue.h>
-#include <android/native_window.h>
-#include <android/looper.h>
-#include <android/log.h>
-#include <string.h>
+#include "display.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,29 +12,9 @@
 #define DEFAULT_PORT 5000
 #define MSG_SIZE 512
 
-// Android log function wrappers
-static const char* kTAG = "ClientIPC";
-#define LOGI(...) \
-  ((void)__android_log_print(ANDROID_LOG_INFO, kTAG, __VA_ARGS__))
-#define LOGW(...) \
-  ((void)__android_log_print(ANDROID_LOG_WARN, kTAG, __VA_ARGS__))
-#define LOGE(...) \
-  ((void)__android_log_print(ANDROID_LOG_ERROR, kTAG, __VA_ARGS__))
-
-bool IsNDKReady(void) {
-	// add prep logic
-	return true;
-}
-const uint32_t color_wheel[4] = {
-	0x000000FF, // red
-	0x0000FF00, // green
-	0x00FF0000, // blue
-	0x00000FFFF // yellow
-};
-
 int mySocket; // holds ID of the socket
 struct sockaddr_in serv; // object of server to connect to
-char* hostIP = "127.0.0.1";
+char* hostIP = "127.0.0.1"; // Localhost since same device
 
 void setupClient(void) {
 	// Create socket
@@ -74,6 +50,7 @@ void sendColor(uint8_t color) {
 	LOGI("%s", server_reply);
 }
 
+// Handles input touches to the screen
 int32_t handle_input(struct android_app* app, AInputEvent* event) {
 	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
 		if (AInputEvent_getSource(event) == AINPUT_SOURCE_TOUCHSCREEN) {
@@ -95,70 +72,7 @@ int32_t handle_input(struct android_app* app, AInputEvent* event) {
 	return 1;
 }
 
-// Takes the native_window and sets a color
-// This is so we can know what square to click
-void setColorSections(ANativeWindow* native_window) {
-
-	ANativeWindow_acquire(native_window);
-	ANativeWindow_Buffer buffer;
-	if (ANativeWindow_lock(native_window, &buffer, nullptr) < 0) {
-		LOGE("Failed to lock native window");
-		return;
-	}
-
-	LOGI("/// H-W-S-F: %d, %d, %d, %d", buffer.height, buffer.width, buffer.stride, buffer.format);
-
-	// set top left red, top right green, bottom left blue, bottom right yellow
-	for (int i = 0; i < buffer.height; i++) {
-
-		if (i < buffer.height / 2) {
-			for (int j = 0; j < buffer.stride; j++) {
-				if (j < buffer.width / 2) {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[0], sizeof(uint32_t));
-				} else {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[1], sizeof(uint32_t));
-				}
-			}
-		} else {
-			for (int j = 0; j < buffer.stride; j++) {
-				if (j < buffer.width / 2) {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[2], sizeof(uint32_t));
-				} else {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[3], sizeof(uint32_t));
-				}
-			}
-		}
-	}
-
-	ANativeWindow_unlockAndPost(native_window);
-	ANativeWindow_release(native_window);
-}
-
-// Process the next main command.
-void handle_cmd(android_app* app, int32_t cmd) {
-	switch (cmd) {
-		case APP_CMD_INIT_WINDOW:
-			// The window is being shown, get it ready.
-			LOGI( "Width: %d", ANativeWindow_getWidth(app->window));
-			LOGI( "Height: %d", ANativeWindow_getHeight(app->window));
-
-			// Here we set the buffer to use RGBX_8888 as default might be; RGB_565
-			ANativeWindow_setBuffersGeometry(app->window,
-											 ANativeWindow_getHeight(app->window),
-											 ANativeWindow_getWidth(app->window),
-											 WINDOW_FORMAT_RGBX_8888);
-
-			setColorSections(app->window);
-
-			break;
-		case APP_CMD_TERM_WINDOW:
-			// The window is being hidden or closed, clean it up.
-			break;
-		default:
-			LOGI("event not handled: %d", cmd);
-	}
-}
-
+// Main Function
 void android_main(struct android_app* app) {
 
 	// Set the callback to process system events
@@ -177,11 +91,7 @@ void android_main(struct android_app* app) {
 							&events, (void**)&source) >= 0) {
 			if (source != NULL) source->process(app, source);
 		}
-
 	} while (app->destroyRequested == 0);
-
 
 	LOGI( "GAME OVER");
 }
-
-
