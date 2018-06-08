@@ -1,0 +1,29 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.spencerfricke.sharedmem_ipc_client">
+
+    <!-- This .apk has no Java code itself, so set hasCode to false. -->
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:hasCode="false"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+
+        <!-- Our activity is the built-in NativeActivity framework class.
+                This will take care of integrating with our NDK code. -->
+        <activity android:name="android.app.NativeActivity"
+                  android:label="@string/app_name"
+                  android:configChanges="orientation|keyboardHidden"
+                  android:screenOrientation="portrait">
+            <!-- Tell NativeActivity the name of or .so -->
+            <meta-data android:name="android.app.lib_name"
+                       android:value="ClientIPC" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
