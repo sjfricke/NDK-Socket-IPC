@@ -24,7 +24,7 @@ const uint32_t color_wheel[4] = {
 	0x00FF0000, // blue
 	0x00000FFFF // yello
 };
-const uint32_t test = 0xFFFFFFFF;
+
 // Takes the native_window and sets a color
 // This is so we can know the IPC worked
 void setWindowColor(ANativeWindow* native_window, int color_index) {
