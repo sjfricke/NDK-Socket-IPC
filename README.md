@@ -1,15 +1,27 @@
 # NDK-Socket-IPC
 
-This this a experiment to see if you can run two apps at once using Unix Sockets to communicate as an IPC (inter-process communication).
+This this a experiment to see different forms of IPC (inter-process communication) for native apps not exposed to the Android Binder SDK class. This app has a server app that is one of 4 colors and a client app that changes the color.
 
-This was not designed an IPC replacement, but because I can't find any example online showing otherwise
+![Demo gif](demo.gif)
 
-## Conclusion
+> Disclaimer: The code is messy AF, was a quick prototype, for a friend as a proof of concept. Also have not profiled and not sure if there is better way of doing IPC in native Android app, if so please share since a Google search shows very little on topic
 
-This method does work actually! If you LogCat the server application when running you will see the input from the client trigger it
+## The 3 Methods
 
-## Three BIG things to consider
+1. [Unix Sockets](Unix_Sockets)
+  - Good o'l C style Unix Sockets
+  - Works for any version of Android
+2. [Shared Memory](Shared_Memory)
+  - Using the shared memory API [<android/sharedmem.h>](https://developer.android.com/ndk/reference/group/memory)
+  - Android 8.0 (API 26) needed to run
+3. [AHardwareBuffer](AHardwareBuffer)
+  - Using the native hardware buffer API [<android/hardware_buffer.h>](https://developer.android.com/ndk/reference/group/native-activity)
+  - Android 8.0 (API 26) needed to run
 
-1. My color example fails because the server can't update the color since it can't get the ANativeWindow when in background. One could store the data for the example and check when the app comes back into foreground. Something I would like to look more into.
-2. I found there is a `AF_UNIX` socket family instead of `AF_INET` so not sure if that would be a way better approuch
-3. The code is messy AF, was a quick prototype, for a friend as a proof of concept
+## How to run
+
+- Each folder has a Client and Server folder each containing an Android Studio project.
+- Open both and install on device.
+- Open server app first (currently working on more robust example)
+- Open client app and pick color
+- Either switch back to server app to see change of color or open LogCat and view the print out
