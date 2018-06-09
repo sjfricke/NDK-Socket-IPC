@@ -1,8 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.spencerfricke.socket_ipc_server">
 
-    <uses-permission android:name="android.permission.INTERNET" />
-
     <!-- This .apk has no Java code itself, so set hasCode to false. -->
     <application
         android:allowBackup="true"

@@ -2,82 +2,94 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <netinet/in.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <signal.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <errno.h>
 
-#define DEFAULT_PORT 5000
-#define MSG_SIZE 512
-
-struct sockaddr_in dest; // socket info about the machine connecting to us
-struct sockaddr_in server; // socket info about our server
-int mySocket;            // socket used to listen for incoming connections
-int consocket;           // used to hold status of connect to socket
-socklen_t socksize = sizeof(struct sockaddr_in);
+// Can be anything if using abstract namespace
+#define SOCKET_NAME "serverSocket"
+#define BUFFER_SIZE 16
 
 void* setupServer(void* na) {
-	char receiveMsg[MSG_SIZE]; // message buffer
-	char returnMsg[] = "message received";
+	int ret;
+	struct sockaddr_un server_addr;
+	int socket_fd;
+	int data_socket;
+	uint8_t buffer[BUFFER_SIZE];
+	char socket_name[108]; // 108 sun_path length max
 
-	memset(&server, 0, sizeof(server)); // zero the struct before filling the fields
-	server.sin_family = AF_INET; // set to use Internet address family
-	server.sin_addr.s_addr = htonl(INADDR_ANY); // sets our local IP address
-	server.sin_port = htons(DEFAULT_PORT); // sets the server port number
+	LOGI("Start server setup");
 
-	mySocket = socket(AF_INET, SOCK_STREAM, 0);
-	if (mySocket < 0) { LOGE("ERROR: Opening socket"); }
-
-	// bind server information to mySocket
-	int status = bind(mySocket, (struct sockaddr *)&server, sizeof(struct sockaddr));
-
-	// checks for TIME_WAIT socket
-	// when daemon is closed there is a delay to make sure all TCP data is propagated
-	if (status < 0) {
-		LOGE("ERROR opening socket: %d , possible TIME_WAIT\n", status);
-		exit(-1);
+	// AF_UNIX for domain unix IPC and SOCK_STREAM since it works for the example
+	socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (socket_fd < 0) {
+		LOGE("socket: %s", strerror(errno));
+		exit(EXIT_FAILURE);
 	}
+	LOGI("Socket made");
 
-	// start listening, allowing a queue of up to 1 pending connection
-	listen(mySocket, 1);
+	// NDK needs abstract namespace by leading with '\0'
+	// Ya I was like WTF! too... http://www.toptip.ca/2013/01/unix-domain-socket-with-abstract-socket.html?m=1
+	// Note you don't need to unlink() the socket then
+	memcpy(&socket_name[0], "\0", 1);
+	strcpy(&socket_name[1], SOCKET_NAME);
 
-	LOGI("SERVER UP AND READY");
+	// clear for safty
+	memset(&server_addr, 0, sizeof(struct sockaddr_un));
+	server_addr.sun_family = AF_UNIX; // Unix Domain instead of AF_INET IP domain
+	strncpy(server_addr.sun_path, socket_name, sizeof(server_addr.sun_path) - 1); // 108 char max
 
-	for (;;) { // keeps daemon running forever
+	ret = bind(socket_fd, (const struct sockaddr *) &server_addr, sizeof(struct sockaddr_un));
+	if (ret < 0) {
+		LOGE("bind: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	LOGI("Bind made");
 
-		// blocks until a TCP handshake is made
-		consocket = accept(mySocket, (struct sockaddr *)&dest, &socksize);
+	// Open 8 back buffers for this demo
+	ret = listen(socket_fd, 8);
+	if (ret < 0) {
+		LOGE("listen: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	LOGI("Socket listening for packages");
 
-		// main loop to wait for a request
-		while(consocket) {
+	// Wait for incoming connection.
+	data_socket = accept(socket_fd, NULL, NULL);
+	if (data_socket < 0) {
+		LOGE("accept: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	LOGI("Accepted data");
+	// This is the main loop for handling connections
+	// Assuming in example connection is established only once
+	// Would be better to refactor this for robustness
+	for (;;) {
 
-			// used to get the message of length MSG_SIZE
-			int msgSize = recv(consocket, receiveMsg, MSG_SIZE , 0);
-			if (msgSize < 0) { LOGE("ERROR on recv"); }
-			else if (msgSize == 0) { break; } // clients dropped connection from socket
+		// Wait for next data packet
+		ret = read(data_socket, buffer, BUFFER_SIZE);
+		if (ret < 0) {
+			LOGE("read: %s", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 
-			setColorSelected((uint8_t)receiveMsg[0]);
-			LOGI("Color Index: %d", (uint8_t)receiveMsg[0]);
+		LOGI("Buffer: %d", buffer[0]);
+		setColorSelected(buffer[0]);
 
-			// clears receive message buffer
-			memset(receiveMsg, 0, MSG_SIZE);
+		// Send back result
+		sprintf((char*)buffer, "%d", "Got message");
+		ret = write(data_socket, buffer, BUFFER_SIZE);
+		if (ret < 0) {
+			LOGE("write: %s", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 
-			// sends back response message
-			status = send(consocket, returnMsg, strlen(returnMsg), 0);
-			if (status < 0) { LOGE("ERROR on send"); }
-
-		} // end of connection while loop
-
-		close(consocket); // ends current TCP connection and frees server thread
-		LOGE("client dropped connection");
-
-	} // end forever loop
-
-	// clean up on close if reached
-	free(receiveMsg);
-	close(mySocket);
+		// Close socket between accepts
+	}
+	close(data_socket);
+	close(socket_fd);
 
 	return NULL;
 }

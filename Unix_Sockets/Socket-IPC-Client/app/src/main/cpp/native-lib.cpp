@@ -1,53 +1,71 @@
 #include "display.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <netinet/in.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <signal.h>
+#include <sys/un.h>
+#include <unistd.h>
 
-#define DEFAULT_PORT 5000
-#define MSG_SIZE 512
+// Can be anything if using abstract namespace
+#define SOCKET_NAME "serverSocket"
+#define BUFFER_SIZE 16
 
-int mySocket; // holds ID of the socket
-struct sockaddr_in serv; // object of server to connect to
-char* hostIP = "127.0.0.1"; // Localhost since same device
+static int data_socket;
+static struct sockaddr_un server_addr;
 
 void setupClient(void) {
-	// Create socket
-	// AF_INET refers to the Internet Domain
-	// SOCK_STREAM sets a stream to send data
-	// 0 will have the OS pick TCP for SOCK_STREAM
-	mySocket = socket(AF_INET, SOCK_STREAM, 0);
-	if (mySocket < 0) { LOGE ("Could not create socket"); }
+	char socket_name[108]; // 108 sun_path length max
 
-	serv.sin_addr.s_addr = inet_addr(hostIP); // sets IP of server
-	serv.sin_family = AF_INET; // uses internet address domain
-	serv.sin_port = htons(DEFAULT_PORT); // sets PORT on server
+	data_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (data_socket < 0) {
+		LOGE("socket: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
-	// Connect to remote server with socket
-	int status = connect(mySocket, (struct sockaddr *)&serv , sizeof(serv));
-	if (status < 0) { LOGE("Connection error"); }
+	// NDK needs abstract namespace by leading with '\0'
+	// Ya I was like WTF! too... http://www.toptip.ca/2013/01/unix-domain-socket-with-abstract-socket.html?m=1
+	// Note you don't need to unlink() the socket then
+	memcpy(&socket_name[0], "\0", 1);
+	strcpy(&socket_name[1], SOCKET_NAME);
 
-	LOGE("CONNECTED!!");
+	// clear for safty
+	memset(&server_addr, 0, sizeof(struct sockaddr_un));
+	server_addr.sun_family = AF_UNIX; // Unix Domain instead of AF_INET IP domain
+	strncpy(server_addr.sun_path, socket_name, sizeof(server_addr.sun_path) - 1); // 108 char max
+
+	// Assuming only one init connection for demo
+	int ret = connect(data_socket, (const struct sockaddr *) &server_addr, sizeof(struct sockaddr_un));
+	if (ret < 0) {
+		LOGE("connect: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	LOGI("Client Setup Complete");
 }
 
 void sendColor(uint8_t color) {
-	char message[MSG_SIZE];
-	char server_reply[MSG_SIZE];
+	int ret;
+	uint8_t buffer[BUFFER_SIZE];
 
-	memcpy(&message[0], &color, sizeof(uint8_t));
+	LOGI("Color: %d", color);
+	memcpy(buffer, &color, sizeof(uint8_t));
+	LOGI("Buffer: %d", buffer[0]);
 
-	int status =  send(mySocket, message , MSG_SIZE, 0);
-	if (status < 0) { LOGE("Send failed\n"); }
+	ret = write(data_socket, buffer, BUFFER_SIZE);
+	if (ret < 0) {
+		LOGE("write: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
-	// receive a reply from the server
-	status = recv(mySocket, server_reply, MSG_SIZE, 0);
-	if (status < 0) { LOGE("recv failed\n"); }
-	LOGI("%s", server_reply);
+	ret = read(data_socket, buffer, BUFFER_SIZE);
+	if (ret < 0) {
+		LOGE("read: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Return: %s", (char*)buffer);
 }
 
 // Handles input touches to the screen
@@ -93,5 +111,6 @@ void android_main(struct android_app* app) {
 		}
 	} while (app->destroyRequested == 0);
 
+	close(data_socket);
 	LOGI( "GAME OVER");
 }

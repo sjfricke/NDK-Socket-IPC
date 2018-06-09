@@ -1,6 +1,6 @@
 # NDK-Socket-IPC
 
-This this a experiment to see different forms of IPC (inter-process communication) for native apps not exposed to the Android Binder SDK class. This app has a server app that is one of 4 colors and a client app that changes the color.
+This this a experiment to see different forms of IPC (inter-process communication) for native apps not exposed to the Android Binder SDK class. The current 3 forms are Unix Domain Sockets, NDK Shared Memory, and NDK AHardwareBuffer. This app has a server app that is one of 4 colors and a client app that changes the color.
 
 ![Demo gif](demo.gif)
 
@@ -8,8 +8,9 @@ This this a experiment to see different forms of IPC (inter-process communicatio
 
 ## The 3 Methods
 
-1. [Unix Sockets](Unix_Sockets)
-  - Good o'l C style Unix Sockets
+1. [Unix Domain Sockets](Unix_Sockets)
+  - Good o'l C style Unix Domain Sockets
+	- Same idea if ever sent TCP/UDP Sockets before
   - Works for any version of Android
 2. [Shared Memory](Shared_Memory)
   - Using the shared memory API [<android/sharedmem.h>](https://developer.android.com/ndk/reference/group/memory)
