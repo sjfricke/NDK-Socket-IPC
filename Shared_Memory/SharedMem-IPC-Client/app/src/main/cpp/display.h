@@ -23,6 +23,11 @@ static const char* kTAG = "ClientIPC";
 #define LOGE(...) \
   ((void)__android_log_print(ANDROID_LOG_ERROR, kTAG, __VA_ARGS__))
 
+// 0xAABBGGRR for pixel
+#define RED_SHIFT 0
+#define GREEN_SHIFT 8
+#define BLUE_SHIFT 16
+
 const uint32_t color_wheel[4] = {
 	0x000000FF, // red
 	0x0000FF00, // green
@@ -30,9 +35,17 @@ const uint32_t color_wheel[4] = {
 	0x00000FFFF // yellow
 };
 
+static int screen_height = 0;
+static int screen_stride = 0;
+
 bool IsNDKReady(void);
 
 void setColorSections(ANativeWindow* native_window);
+
+void setSharedMem(uint8_t color);
+
+int getScreenHeight() { return screen_height; }
+int getScreenStride() { return screen_stride; }
 
 // Process the next main command.
 void handle_cmd(android_app* app, int32_t cmd);

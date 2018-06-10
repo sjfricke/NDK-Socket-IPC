@@ -22,27 +22,22 @@ void setColorSections(ANativeWindow* native_window) {
 
 	LOGI("/// H-W-S-F: %d, %d, %d, %d", buffer.height, buffer.width, buffer.stride, buffer.format);
 
-	// set top left red, top right green, bottom left blue, bottom right yellow
+	// 3 columns of color
 	for (int i = 0; i < buffer.height; i++) {
-
-		if (i < buffer.height / 2) {
-			for (int j = 0; j < buffer.stride; j++) {
-				if (j < buffer.width / 2) {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[0], sizeof(uint32_t));
-				} else {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[1], sizeof(uint32_t));
-				}
-			}
-		} else {
-			for (int j = 0; j < buffer.stride; j++) {
-				if (j < buffer.width / 2) {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[2], sizeof(uint32_t));
-				} else {
-					memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[3], sizeof(uint32_t));
-				}
+		for (int j = 0; j < buffer.stride; j++) {
+			if (j < buffer.width / 3) {
+				memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[0], sizeof(uint32_t));
+			} else if (j < buffer.width * 2 / 3) {
+				memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[1], sizeof(uint32_t));
+			} else {
+				memcpy((char *) buffer.bits + (((i * buffer.stride) + j) * 4), &color_wheel[2], sizeof(uint32_t));
 			}
 		}
 	}
+
+	// get height and stride while having window buffer
+	screen_height = buffer.height;
+	screen_stride = buffer.stride;
 
 	ANativeWindow_unlockAndPost(native_window);
 	ANativeWindow_release(native_window);

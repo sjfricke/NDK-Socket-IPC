@@ -65,7 +65,7 @@ void sendColor(uint8_t color) {
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Return: %s", (char*)buffer);
+	LOGI("Return: %s", (char*)buffer);
 }
 
 // Handles input touches to the screen
@@ -77,8 +77,14 @@ int32_t handle_input(struct android_app* app, AInputEvent* event) {
 				float y = AMotionEvent_getY(event,0);
 				int32_t h_width = ANativeWindow_getWidth(app->window)/2;
 				int32_t h_height = ANativeWindow_getHeight(app->window)/2;
-				LOGI("X: %f  --   Y: %f", x, y);
 
+				// try to compenstate for the touch screen's home and back button on phone
+				if (y > ANativeWindow_getHeight(app->window) * 0.95) {
+					return 1;
+				}
+
+				LOGI("X: %f  --   Y: %f", x, y);
+				
 				// Sends color depending on region
 				if (x < h_width && y < h_height) { sendColor(0); }
 				else if (x > h_width && y < h_height) { sendColor(1); }

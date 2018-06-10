@@ -13,6 +13,8 @@
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <cmath>
 
 // Android log function wrappers
 static const char* kTAG = "ServerIPC";
@@ -23,21 +25,22 @@ static const char* kTAG = "ServerIPC";
 #define LOGE(...) \
   ((void)__android_log_print(ANDROID_LOG_ERROR, kTAG, __VA_ARGS__))
 
-const uint32_t color_wheel[4] = {
-	0x000000FF, // red
-	0x0000FF00, // green
-	0x00FF0000, // blue
-	0x00000FFFF // yellow
-};
 
-// color to set when screen goes back to foreground process
-void setColorSelected(uint8_t color);
+// 4K screen is 4096 x 2160 so have buffer for up to 4K (assuming same NativeWindow stride)
+#define MAX_SCREEN_SIZE 8847360
 
 static ANativeWindow* native_window;
 
+// The buffer that fills the screen
+static uint8_t* color_buffer;
+
 bool IsNDKReady(void);
 
-void setWindowColor(uint8_t color_index);
+void setWindowWithBuffer(void);
+
+void copyToColorBuffer(uint8_t* new_buffer, uint32_t size);
+
+void cleanup(void);
 
 // Process the next main command.
 void handle_cmd(android_app* app, int32_t cmd);
