@@ -2,9 +2,17 @@
 
 This this a experiment to see different forms of IPC (inter-process communication) for native apps not exposed to the Android Binder SDK class. The current 3 forms are Unix Domain Sockets, NDK Shared Memory, and NDK AHardwareBuffer. This app has a server app that is one of 4 colors and a client app that changes the color.
 
-![Demo gif](demo.gif)
+<table class="image">
+<caption align="bottom">Pure Unix Domain demo (generates full screen color on server end)</caption>
+<tr><td><img src="demo1.gif"/></td></tr>
+</table>
 
-> Disclaimer: The code is messy AF, was a quick prototype, for a friend as a proof of concept. Also have not profiled and not sure if there is better way of doing IPC in native Android app, if so please share since a Google search shows very little on topic
+<table class="image">
+<caption align="bottom">AHardwareBuffer demo (server reads data generated from client saved in shared memory buffer)</caption>
+<tr><td><img src="demo2.gif"/></td></tr>
+</table>
+
+> Disclaimer: The code was a quick prototype, for a friend as a proof of concept. Also have not profiled and not sure if there is better way of doing IPC in native Android app, if so please share since a Google search shows very little on topic
 
 ## The 3 Methods
 

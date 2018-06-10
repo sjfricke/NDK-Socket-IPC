@@ -2,7 +2,7 @@
 
 So after playing around I found that it **Should** be possible to use the Shared Memory API, but this is not the route you want. the `<android/sharedmem.h>` API was designed to share memory between processes like `<android/NeuralNetworks.h>` where you will call [ANeuralNetworksMemory_createFromFd()](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ga3510b07da0ab9626fb84688fb91112be) and the under lying Android NDK will take the file descriptor from there.
 
-To finish this example, which I honestly will probably not do, is to share the file descriptor from the mapped memory of your `ASharedMemory_create()` call (which is really just a `shm_open()` call) and send use the Unix Domain Sockets to send the file descriptor to the other process using `sendmsg(2)` and `recvmsg(2)`
+To finish this example, which I honestly will probably not do, is to share the file descriptor from the mapped memory of your `ASharedMemory_create()` call (which is really just a `shm_open()` call) and send use the Unix Domain Sockets to send the file descriptor to the other process using `sendmsg(2)` and `recvmsg(2)`. Mainly because the `AHardwareBuffer` API [already does this better](https://android.googlesource.com/platform/frameworks/native/+/android-8.1.0_r33/libs/nativewindow/AHardwareBuffer.cpp#143)
 
 Here are some links if you still want to go this route
 
